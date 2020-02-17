@@ -1,0 +1,4 @@
+LogRegression score: 0.867
+RBF_SVM score: 0.908
+KNN score: 0.9
+Bayes score: 0.892
