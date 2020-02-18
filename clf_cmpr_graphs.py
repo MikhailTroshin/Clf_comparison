@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 from matplotlib import pyplot as plt
 
-#___________________ Data Preparing ___________________
+#___________________ Prepare data ___________________
 
 dataset = pd.read_csv('Social_Network_Ads.csv')
 
@@ -43,14 +43,15 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.3, random_
 
 #___________________ Prepare scores___________________
 
+# Choose metric
+from sklearn.metrics import accuracy_score, classification_report
+
 # DataFrame of scores (accuracy scores)
 names = ['LogRegression','RBF_SVM','KNN','Bayes']
 all_scores = pd.DataFrame(np.zeros((1,4)), columns=names)
 
-#___________________ Building classifiers ___________________
 
-# Choose metric
-from sklearn.metrics import accuracy_score, classification_report
+#___________________ Build classifiers ___________________
 
 # Make a score func
 def clf_score(clf, name):
@@ -70,18 +71,13 @@ clfs = (LogisticRegression(penalty='l2', C=100, random_state=14),
         KNeighborsClassifier(n_neighbors=20, weights='distance', p=2),
         GaussianNB())
     
-#___________________ Plot some graphics ___________________
+#___________________ Plot graphics ___________________
 
 def make_meshgrids(x,y,h=0.02):
     x_min, x_max = x.min() - 1, x.max() + 1
     y_min, y_max = y.min() - 1, y.max() + 1
     xx, yy = np.meshgrid(np.arange(x_min, x_max, h), np.arange(y_min, y_max, h))
     return xx, yy
-
-def plot_contour(ax, clf, xx, yy, **params):
-    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
-    Z = Z.reshape(xx.shape)
-    return ax.contourf(xx, yy, Z, **params)
 
 score_report = open('Score_report.txt', 'w+')
 
@@ -93,13 +89,17 @@ i=1
 for name, clf in zip(names, clfs):
     ax = plt.subplot(2,2,i)
     clf_score(clf, name)
-    #clf.fit(X_train, y_train)
-    
     score_report.write(name + ' score: ' + str(round(all_scores[name][0], 3)) + '\n')
-    Z = clf.predict(np.c_[xx.ravel(), yy.ravel()])
+    if hasattr(clf, "decision_function"):
+        Z = clf.decision_function(np.c_[xx.ravel(), yy.ravel()])
+    else:
+        Z = clf.predict_proba(np.c_[xx.ravel(), yy.ravel()])[:, 1]
+
+    Z_line = clf.predict(np.c_[xx.ravel(), yy.ravel()])
     Z = Z.reshape(xx.shape)
-    #plot_contour(ax, clf, xx, yy, cmap=plt.cm.coolwarm, alpha=0.3)
+    Z_line = Z_line.reshape(xx.shape)
     ax.contourf(xx, yy, Z, cmap=plt.cm.RdBu, alpha=0.7)
+    ax.contourf(xx, yy, Z_line, cmap=plt.cm.gray, alpha=0.25)
     ax.scatter(X0, X1, c=y, cmap=plt.cm.coolwarm, alpha=0.4, edgecolors='black')
     ax.set_title(name)
     ax.set_xlim(X0.min()-0.5, X0.max()+0.5)
@@ -110,4 +110,3 @@ for name, clf in zip(names, clfs):
     
 score_report.close()
 plt.show()
-
